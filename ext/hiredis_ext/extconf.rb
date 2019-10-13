@@ -29,13 +29,13 @@ end
 if build_hiredis
   # Make sure hiredis is built...
   Dir.chdir(hiredis_dir) do
-    success = system("#{make_program} static")
+    success = system("#{make_program} USE_SSL=1 static")
     raise "Building hiredis failed" if !success
   end
 
   # Statically link to hiredis (mkmf can't do this for us)
   $CFLAGS << " -I#{hiredis_dir}"
-  $LDFLAGS << " #{hiredis_dir}/libhiredis.a"
+  $LDFLAGS << " #{hiredis_dir}/libhiredis.a #{hiredis_dir}/libhiredis_ssl.a -lssl -lcrypto"
 
   have_func("rb_thread_fd_select")
   create_makefile('hiredis/ext/hiredis_ext')

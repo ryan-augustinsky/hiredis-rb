@@ -9,6 +9,7 @@
 #define RSTRING_NOT_MODIFIED
 
 #include "hiredis.h"
+#include "hiredis_ssl.h"
 #include "ruby.h"
 
 /* Defined in hiredis_ext.c */

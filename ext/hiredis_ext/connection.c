@@ -286,6 +286,29 @@ static VALUE connection_connect_unix(int argc, VALUE *argv, VALUE self) {
     return connection_generic_connect(self,c,arg_timeout);
 }
 
+static VALUE connection_secure(int argc, VALUE *argv, VALUE self) {
+    redisParentContext *pc;
+
+    if (argc == 4) {
+        Data_Get_Struct(self,redisParentContext,pc);
+        if (pc->context && !pc->context->err) {
+            if (redisSecureConnection(pc->context, StringValuePtr(argv[0]), StringValuePtr(argv[1]),
+                                      StringValuePtr(argv[2]), StringValuePtr(argv[3])) != REDIS_OK)
+            {
+                rb_raise(rb_eRuntimeError,"can't initialize ssl (%s)", pc->context->errstr);
+            }
+        } else if (!pc->context) {
+            rb_raise(rb_eRuntimeError, "%s", "not connected");
+        } else {
+            rb_raise(rb_eRuntimeError, "connection in error state (%s)", pc->context->errstr);
+        }
+    } else {
+        rb_raise(rb_eArgError, "invalid number of arguments");
+    }
+
+    return Qnil;
+}
+
 static VALUE connection_is_connected(VALUE self) {
     redisParentContext *pc;
     Data_Get_Struct(self,redisParentContext,pc);
@@ -503,6 +526,7 @@ void InitConnection(VALUE mod) {
     rb_global_variable(&klass_connection);
     rb_define_alloc_func(klass_connection, connection_parent_context_alloc);
     rb_define_method(klass_connection, "connect", connection_connect, -1);
+    rb_define_method(klass_connection, "secure", connection_secure, -1);
     rb_define_method(klass_connection, "connect_unix", connection_connect_unix, -1);
     rb_define_method(klass_connection, "connected?", connection_is_connected, 0);
     rb_define_method(klass_connection, "disconnect", connection_disconnect, 0);
