@@ -3,8 +3,21 @@ require 'mkmf'
 build_hiredis = true
 unless have_header('sys/socket.h')
   puts "Could not find <sys/socket.h> (Likely Windows)."
-  puts "Skipping building hiredis. The slower, pure-ruby implementation will be used instead."
   build_hiredis = false
+end
+
+unless have_library('crypto')
+  puts "Can't find libcrypto.  Install it to build with hiredis"
+  build_hiredis = false
+end
+
+unless have_library('ssl')
+  puts "Can't find libssl.  Install it to build with hiredis"
+  puts
+end
+
+if build_hiredis == false
+  puts "Skipping building hiredis. The slower, pure-ruby implementation will be used instead."
 end
 
 RbConfig::MAKEFILE_CONFIG['CC'] = ENV['CC'] if ENV['CC']
@@ -34,7 +47,7 @@ if build_hiredis
   end
 
   # Statically link to hiredis (mkmf can't do this for us)
-  $CFLAGS << " -I#{hiredis_dir} -ggdb3 -O0"
+  $CFLAGS << " -I#{hiredis_dir}"
   $LDFLAGS << " #{hiredis_dir}/libhiredis.a #{hiredis_dir}/libhiredis_ssl.a -lssl -lcrypto"
 
   have_func("rb_thread_fd_select")
