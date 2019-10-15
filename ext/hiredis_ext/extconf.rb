@@ -34,7 +34,7 @@ if build_hiredis
   end
 
   # Statically link to hiredis (mkmf can't do this for us)
-  $CFLAGS << " -I#{hiredis_dir}"
+  $CFLAGS << " -I#{hiredis_dir} -ggdb3 -O0"
   $LDFLAGS << " #{hiredis_dir}/libhiredis.a #{hiredis_dir}/libhiredis_ssl.a -lssl -lcrypto"
 
   have_func("rb_thread_fd_select")

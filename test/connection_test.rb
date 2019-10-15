@@ -277,7 +277,7 @@ module ConnectionTests
       server.write "-ERR wrong number of arguments\r\n"
 
       err = hiredis.read
-      assert_match /wrong number of arguments/i, err.message
+      assert_match (/wrong number of arguments/i), err.message
       assert_kind_of RuntimeError, err
     end
   end

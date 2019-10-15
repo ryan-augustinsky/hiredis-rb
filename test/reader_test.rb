@@ -31,7 +31,7 @@ module ReaderTests
 
   def test_nil
     @reader.feed("$-1\r\n")
-    assert_equal nil, @reader.gets
+    assert_nil @reader.gets
   end
 
   def test_integer
@@ -101,7 +101,7 @@ module ReaderTests
 
   def test_null_multi_bulk
     @reader.feed("*-1\r\n")
-    assert_equal nil, @reader.gets
+    assert_nil @reader.gets
   end
 
   def test_empty_multi_bulk
