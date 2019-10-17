@@ -17,7 +17,7 @@ if with_ssl
 
   unless have_library('ssl')
     puts "Can't find libssl.  Install it to build with hiredis"
-    puts
+    build_hiredis = false
   end
 end
 
