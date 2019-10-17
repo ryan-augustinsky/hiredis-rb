@@ -1,19 +1,24 @@
 require 'mkmf'
 
+with_ssl = ENV['USE_SSL'] == '1' || false
+
 build_hiredis = true
 unless have_header('sys/socket.h')
   puts "Could not find <sys/socket.h> (Likely Windows)."
   build_hiredis = false
 end
 
-unless have_library('crypto')
-  puts "Can't find libcrypto.  Install it to build with hiredis"
-  build_hiredis = false
-end
+# Don't need libcrypto or libssl if we're not building hiredis SSL support
+if with_ssl
+  unless have_library('crypto')
+    puts "Can't find libcrypto.  Install it to build with hiredis"
+    build_hiredis = false
+  end
 
-unless have_library('ssl')
-  puts "Can't find libssl.  Install it to build with hiredis"
-  puts
+  unless have_library('ssl')
+    puts "Can't find libssl.  Install it to build with hiredis"
+    puts
+  end
 end
 
 if build_hiredis == false
@@ -40,15 +45,18 @@ else
 end
 
 if build_hiredis
+  ssl_make_arg = with_ssl ? 'USE_SSL=1' : ''
+  ssl_link_arg = with_ssl ? "#{hiredis_dir}/libhiredis_ssl.a -lssl -lcrypto" : ''
+
   # Make sure hiredis is built...
   Dir.chdir(hiredis_dir) do
-    success = system("#{make_program} USE_SSL=1 static")
+    success = system("#{make_program} #{ssl_make_arg} static")
     raise "Building hiredis failed" if !success
   end
 
   # Statically link to hiredis (mkmf can't do this for us)
-  $CFLAGS << " -I#{hiredis_dir}"
-  $LDFLAGS << " #{hiredis_dir}/libhiredis.a #{hiredis_dir}/libhiredis_ssl.a -lssl -lcrypto"
+  $CFLAGS << " -I#{hiredis_dir} " << (with_ssl ? " -DUSE_SSL" : '')
+  $LDFLAGS << " #{hiredis_dir}/libhiredis.a #{ssl_link_arg}"
 
   have_func("rb_thread_fd_select")
   create_makefile('hiredis/ext/hiredis_ext')
