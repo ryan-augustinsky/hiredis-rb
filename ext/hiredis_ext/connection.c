@@ -286,22 +286,32 @@ static VALUE connection_connect_unix(int argc, VALUE *argv, VALUE self) {
     return connection_generic_connect(self,c,arg_timeout);
 }
 
-static VALUE connection_secure(VALUE self, VALUE capath, VALUE certpath, 
-                               VALUE keypath, VALUE servername) 
-{
-    redisParentContext *pc;
-    Data_Get_Struct(self,redisParentContext,pc);
+static char *nullable_cstr_arg(VALUE arg) {
+    return NIL_P(arg) ? NULL : StringValueCStr(arg);
+}
 
+/* conn.secure capath [certpath, keypath, server] */
+static VALUE connection_secure(int argc, VALUE *argv, VALUE self) {
+    redisParentContext *pc;
+    VALUE capath, certpath, keypath, server;
+
+    rb_scan_args(argc, argv, "13", &capath, &certpath, &keypath, &server);
+
+    Data_Get_Struct(self,redisParentContext,pc);
     if (pc->context && !pc->context->err) {
-        if (redisSecureConnection(pc->context, StringValuePtr(capath), StringValuePtr(certpath),
-                                  StringValuePtr(keypath), StringValuePtr(servername)) != REDIS_OK)
+        if (redisSecureConnection(pc->context,
+                                  nullable_cstr_arg(capath),
+                                  nullable_cstr_arg(certpath),
+                                  nullable_cstr_arg(keypath),
+                                  nullable_cstr_arg(server))
+                                  != REDIS_OK)
         {
-            rb_raise(rb_eRuntimeError,"can't initialize ssl (%s)", pc->context->errstr);
+            parent_context_raise(pc);
         }
     } else if (!pc->context) {
         rb_raise(rb_eRuntimeError, "%s", "not connected");
     } else {
-        rb_raise(rb_eRuntimeError, "connection in error state (%s)", pc->context->errstr);
+        parent_context_raise(pc);
     }
 
     return Qnil;
@@ -526,7 +536,7 @@ void InitConnection(VALUE mod) {
 #ifdef USE_SSL
     rb_define_method(klass_connection, "connect", connection_connect, -1);
 #endif
-    rb_define_method(klass_connection, "secure", connection_secure, 4);
+    rb_define_method(klass_connection, "secure", connection_secure, -1);
     rb_define_method(klass_connection, "connect_unix", connection_connect_unix, -1);
     rb_define_method(klass_connection, "connected?", connection_is_connected, 0);
     rb_define_method(klass_connection, "disconnect", connection_disconnect, 0);

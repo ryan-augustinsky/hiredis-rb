@@ -1,4 +1,5 @@
 require "socket"
+require "openssl"
 require "hiredis/ruby/reader"
 require "hiredis/version"
 
@@ -182,6 +183,27 @@ module Hiredis
         !! @sock
       end
 
+      def secure(ca_path, cert_path = nil, key_path = nil, server = nil)
+        raise "not connected" unless connected?
+
+        ssl_context = OpenSSL::SSL::SSLContext.new()
+        ssl_context.cert = OpenSSL::X509::Certificate.new(File.open(ca_path))
+        ssl_context.key = OpenSSL::PKey::RSA.new(File.open(key_path))
+        ssl_context.ssl_version = :SSLv23
+        ssl_socket = OpenSSL::SSL::SSLSocket.new(@sock, ssl_context)
+        ssl_socket.sync_close = true
+
+        begin
+          ssl_socket.connect_nonblock
+        rescue OpenSSL::SSL::SSLErrorWaitReadable
+          if IO.select([ssl_socket], nil, nil)
+            retry
+          end
+        end
+
+        @sock = ssl_socket
+      end
+
       def connect(host, port, usecs = nil)
         # Temporarily override timeout on #connect
         timeout = usecs ? (usecs / 1_000_000.0) : @timeout
@@ -266,7 +288,7 @@ module Hiredis
         while (reply = @reader.gets) == false
           begin
             @reader.feed @sock.read_nonblock(1024)
-          rescue Errno::EAGAIN
+          rescue Errno::EAGAIN, OpenSSL::SSL::SSLErrorWaitReadable
             if IO.select([@sock], [], [], @timeout)
               # Readable, try again
               retry
