@@ -290,23 +290,28 @@ static char *nullable_cstr_arg(VALUE arg) {
     return NIL_P(arg) ? NULL : StringValueCStr(arg);
 }
 
-/* conn.secure capath [certpath, keypath, server] */
+/* conn.secure cert_file, key_file [, cacert_file, capath, servername] */
 static VALUE connection_secure(int argc, VALUE *argv, VALUE self) {
+    redisSSLContextError ssl_err;
+    redisSSLContext *ssl_ctx;
     redisParentContext *pc;
-    VALUE capath, certpath, keypath, server;
+    const char *errstr;
+    VALUE cacert_file, capath, cert_file, key_file, server;
 
-    rb_scan_args(argc, argv, "13", &capath, &certpath, &keypath, &server);
+    rb_scan_args(argc, argv, "23", &cert_file, &key_file, &cacert_file, &capath, &server);
 
     Data_Get_Struct(self,redisParentContext,pc);
     if (pc->context && !pc->context->err) {
-        if (redisSecureConnection(pc->context,
-                                  nullable_cstr_arg(capath),
-                                  nullable_cstr_arg(certpath),
-                                  nullable_cstr_arg(keypath),
-                                  nullable_cstr_arg(server))
-                                  != REDIS_OK)
-        {
-            parent_context_raise(pc);
+        ssl_ctx = redisCreateSSLContext(nullable_cstr_arg(cacert_file),
+                                        nullable_cstr_arg(capath),
+                                        nullable_cstr_arg(cert_file),
+                                        nullable_cstr_arg(key_file),
+                                        nullable_cstr_arg(server),
+                                        &ssl_err);
+        if (ssl_ctx == NULL) {
+            rb_raise(rb_eRuntimeError, "%s", redisSSLContextGetError(ssl_err));
+        } else if (redisInitiateSSLWithContext(pc->context, ssl_ctx) != REDIS_OK) {
+            rb_raise(rb_eRuntimeError, "%s", pc->context->errstr);
         }
     } else if (!pc->context) {
         rb_raise(rb_eRuntimeError, "%s", "not connected");
