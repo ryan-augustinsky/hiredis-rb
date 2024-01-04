@@ -5,6 +5,7 @@ require "socket"
 module Hiredis
   module Ext
     class Connection
+
       alias :_disconnect :disconnect
 
       def disconnect

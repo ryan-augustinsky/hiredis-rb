@@ -1,6 +1,7 @@
 require 'mkmf'
 
-with_ssl = ENV['USE_SSL'] == '1' || false
+# with_ssl = ENV['USE_SSL'] == '1' || false
+with_ssl = true
 
 build_hiredis = true
 unless have_header('sys/socket.h')
