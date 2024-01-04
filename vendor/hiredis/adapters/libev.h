@@ -46,7 +46,7 @@ typedef struct redisLibevEvents {
 
 static void redisLibevReadEvent(EV_P_ ev_io *watcher, int revents) {
 #if EV_MULTIPLICITY
-    ((void)EV_A);
+    ((void)loop);
 #endif
     ((void)revents);
 
@@ -56,7 +56,7 @@ static void redisLibevReadEvent(EV_P_ ev_io *watcher, int revents) {
 
 static void redisLibevWriteEvent(EV_P_ ev_io *watcher, int revents) {
 #if EV_MULTIPLICITY
-    ((void)EV_A);
+    ((void)loop);
 #endif
     ((void)revents);
 
@@ -66,9 +66,8 @@ static void redisLibevWriteEvent(EV_P_ ev_io *watcher, int revents) {
 
 static void redisLibevAddRead(void *privdata) {
     redisLibevEvents *e = (redisLibevEvents*)privdata;
-#if EV_MULTIPLICITY
     struct ev_loop *loop = e->loop;
-#endif
+    ((void)loop);
     if (!e->reading) {
         e->reading = 1;
         ev_io_start(EV_A_ &e->rev);
@@ -77,9 +76,8 @@ static void redisLibevAddRead(void *privdata) {
 
 static void redisLibevDelRead(void *privdata) {
     redisLibevEvents *e = (redisLibevEvents*)privdata;
-#if EV_MULTIPLICITY
     struct ev_loop *loop = e->loop;
-#endif
+    ((void)loop);
     if (e->reading) {
         e->reading = 0;
         ev_io_stop(EV_A_ &e->rev);
@@ -88,9 +86,8 @@ static void redisLibevDelRead(void *privdata) {
 
 static void redisLibevAddWrite(void *privdata) {
     redisLibevEvents *e = (redisLibevEvents*)privdata;
-#if EV_MULTIPLICITY
     struct ev_loop *loop = e->loop;
-#endif
+    ((void)loop);
     if (!e->writing) {
         e->writing = 1;
         ev_io_start(EV_A_ &e->wev);
@@ -99,9 +96,8 @@ static void redisLibevAddWrite(void *privdata) {
 
 static void redisLibevDelWrite(void *privdata) {
     redisLibevEvents *e = (redisLibevEvents*)privdata;
-#if EV_MULTIPLICITY
     struct ev_loop *loop = e->loop;
-#endif
+    ((void)loop);
     if (e->writing) {
         e->writing = 0;
         ev_io_stop(EV_A_ &e->wev);
@@ -110,9 +106,8 @@ static void redisLibevDelWrite(void *privdata) {
 
 static void redisLibevStopTimer(void *privdata) {
     redisLibevEvents *e = (redisLibevEvents*)privdata;
-#if EV_MULTIPLICITY
     struct ev_loop *loop = e->loop;
-#endif
+    ((void)loop);
     ev_timer_stop(EV_A_ &e->timer);
 }
 
@@ -125,9 +120,6 @@ static void redisLibevCleanup(void *privdata) {
 }
 
 static void redisLibevTimeout(EV_P_ ev_timer *timer, int revents) {
-#if EV_MULTIPLICITY
-    ((void)EV_A);
-#endif
     ((void)revents);
     redisLibevEvents *e = (redisLibevEvents*)timer->data;
     redisAsyncHandleTimeout(e->context);
@@ -135,9 +127,8 @@ static void redisLibevTimeout(EV_P_ ev_timer *timer, int revents) {
 
 static void redisLibevSetTimeout(void *privdata, struct timeval tv) {
     redisLibevEvents *e = (redisLibevEvents*)privdata;
-#if EV_MULTIPLICITY
     struct ev_loop *loop = e->loop;
-#endif
+    ((void)loop);
 
     if (!ev_is_active(&e->timer)) {
         ev_init(&e->timer, redisLibevTimeout);
@@ -163,7 +154,7 @@ static int redisLibevAttach(EV_P_ redisAsyncContext *ac) {
 
     e->context = ac;
 #if EV_MULTIPLICITY
-    e->loop = EV_A;
+    e->loop = loop;
 #else
     e->loop = NULL;
 #endif

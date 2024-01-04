@@ -267,11 +267,16 @@ static dictEntry *dictFind(dict *ht, const void *key) {
     return NULL;
 }
 
-static void dictInitIterator(dictIterator *iter, dict *ht) {
+static dictIterator *dictGetIterator(dict *ht) {
+    dictIterator *iter = hi_malloc(sizeof(*iter));
+    if (iter == NULL)
+        return NULL;
+
     iter->ht = ht;
     iter->index = -1;
     iter->entry = NULL;
     iter->nextEntry = NULL;
+    return iter;
 }
 
 static dictEntry *dictNext(dictIterator *iter) {
@@ -292,6 +297,10 @@ static dictEntry *dictNext(dictIterator *iter) {
         }
     }
     return NULL;
+}
+
+static void dictReleaseIterator(dictIterator *iter) {
+    hi_free(iter);
 }
 
 /* ------------------------- private functions ------------------------------ */
